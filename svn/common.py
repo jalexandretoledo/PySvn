@@ -66,6 +66,8 @@ class CommonClient(svn.common_base.CommonBase):
         return None
 
     def info(self, rel_path=None, revision=None):
+        # print('DEBUG: info({}, {})'.format(rel_path, revision) )
+
         cmd = []
         if revision is not None:
             cmd += ['-r', str(revision)]
@@ -80,16 +82,38 @@ class CommonClient(svn.common_base.CommonBase):
             cmd,
             do_combine=True)
 
+        # print('DEBUG:\n{}\n\n\n'.format(result))
         root = xml.etree.ElementTree.fromstring(result)
 
         entry_attr = root.find('entry').attrib
-        commit_attr = root.find('entry/commit').attrib
+
+        entry_commit = root.find('entry/commit')
+        if not (entry_commit is None):
+            commit_attr = entry_commit.attrib
+            try:
+                commit_revision = int(commit_attr['revision'])
+            except ValueError:
+                commit_revision = -3
+        else:
+            commit_attr = None
+            commit_revision = None
 
         relative_url = root.find('entry/relative-url')
         author = root.find('entry/commit/author')
         wcroot_abspath = root.find('entry/wc-info/wcroot-abspath')
         wcinfo_schedule = root.find('entry/wc-info/schedule')
         wcinfo_depth = root.find('entry/wc-info/depth')
+
+        try:
+            entry_revision = int(entry_attr['revision'])
+        except ValueError:
+            entry_revision = -2
+
+        entry_commit_date = root.find('entry/commit/date')
+        if not (entry_commit_date is None):
+            commit_date = dateutil.parser.parse(entry_commit_date.text)
+        else:
+            commit_date = None
 
         info = {
             'url': root.find('entry/url').text,
@@ -101,7 +125,7 @@ class CommonClient(svn.common_base.CommonBase):
 
             'entry#kind': entry_attr['kind'],
             'entry#path': entry_attr['path'],
-            'entry#revision': int(entry_attr['revision']),
+            'entry#revision': entry_revision,
 
             'repository/root': root.find('entry/repository/root').text,
             'repository/uuid': root.find('entry/repository/uuid').text,
@@ -111,9 +135,8 @@ class CommonClient(svn.common_base.CommonBase):
             'wc-info/depth': self.__element_text(wcinfo_depth),
             'commit/author': self.__element_text(author),
 
-            'commit/date': dateutil.parser.parse(
-                root.find('entry/commit/date').text),
-            'commit#revision': int(commit_attr['revision']),
+            'commit/date': commit_date,
+            'commit#revision': commit_revision,
         }
 
         # Set some more intuitive keys, because no one likes dealing with
