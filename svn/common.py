@@ -19,6 +19,7 @@ _STATUS_ENTRY = \
             'type_raw_name',
             'type',
             'revision',
+            'props',
         ])
 
 
@@ -321,7 +322,8 @@ class CommonClient(svn.common_base.CommonBase):
                 name=name,
                 type_raw_name=change_type_raw,
                 type=change_type,
-                revision=revision
+                revision=revision,
+                props=wcstatus_attr
             )
 
     def list(self, extended=False, rel_path=None):
