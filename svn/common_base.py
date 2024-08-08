@@ -36,7 +36,10 @@ class CommonBase(object):
         if return_binary is True or do_combine is True:
             return stdout
 
-        return stdout.decode().strip('\n').split('\n')
+        try:
+            return stdout.decode().strip('\n').split('\n')
+        except UnicodeDecodeError:
+            return stdout.decode('iso-8859-1').strip('\n').split('\n')
 
     def rows_to_dict(self, rows, lc=True):
         d = {}
